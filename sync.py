@@ -72,4 +72,4 @@ if __name__ == '__main__':
     ak = args.ak or os.getenv('QUNIU_ACCESS_TOKEN', '')
     sk = args.sk or os.getenv('QUNIU_SECRET_KEY', '')
     bucket = args.bucket or os.getenv('QUNIU_BUCKET_NAME', '') or 'baize-ai'
-    upload_directory(ak, sk, args.bucket, args.src, args.dst)
+    upload_directory(ak, sk, bucket, args.src, args.dst)
