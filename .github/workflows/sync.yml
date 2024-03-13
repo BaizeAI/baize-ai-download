@@ -40,17 +40,10 @@ jobs:
           python parse_issue_body.py "${{ github.event.issue.body }}"
         shell: bash
 
-      - name: 设置同步参数
-        id: set_params
-        run: |
-          echo "SYNC_TYPE=${{ github.event.issue.body }}" > sync_params.env
-          echo "SOURCE_URL=${{ github.event.issue.body }}" >> sync_params.env
-          echo "TARGET_PATH=${{ github.event.issue.body }}" >> sync_params.env
-      
       - name: 执行同步脚本
         if: ${{  steps.parse_body.outputs.sync_type == 'huggingface' }}
         run: |
-          ./sync_hf.sh "${{ steps.parse_body.outputs.source_url }}" "${{ steps.parse_body.outputs.target_path }}"
+          bash ./sync_hf.sh "${{ steps.parse_body.outputs.source_url }}" "${{ steps.parse_body.outputs.target_path }}"
 
       - name: 添加 Issue 评论
         uses: actions/github-script@v5
