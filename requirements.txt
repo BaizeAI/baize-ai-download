@@ -1,0 +1,3 @@
+qiniu
+jinja2
+huggingface_hub[cli]

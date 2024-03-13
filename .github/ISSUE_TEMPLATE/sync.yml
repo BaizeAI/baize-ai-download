@@ -1,0 +1,30 @@
+name: 数据同步请求
+description: 提交一个数据同步请求
+title: "[同步]："
+labels: [sync]
+body:
+  - type: dropdown
+    id: sync_type
+    attributes:
+      label: 同步类型
+      description: 请选择同步类型
+      options:
+        - huggingface
+    validations:
+      required: true
+  - type: input
+    id: source_url
+    attributes:
+      label: 源地址
+      description: 请输入源数据地址
+      placeholder: '例如：facebook/opt-125m'
+    validations:
+      required: true
+  - type: input
+    id: target_path
+    attributes:
+      label: 目标路径
+      description: 请输入目标保存路径
+      placeholder: '例如：models/opt-125m'
+    validations:
+      required: true

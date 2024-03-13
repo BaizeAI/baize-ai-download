@@ -1,0 +1,42 @@
+name: 处理数据同步 Issue
+
+on:
+  issues:
+    types: [opened, reopened]
+
+jobs:
+  sync_data:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'sync')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: 设置同步参数
+        id: set_params
+        run: |
+          echo "SYNC_TYPE=${{ github.event.issue.body }}" > sync_params.env
+          echo "SOURCE_URL=${{ github.event.issue.body }}" >> sync_params.env
+          echo "TARGET_PATH=${{ github.event.issue.body }}" >> sync_params.env
+      
+      - name: 执行同步脚本
+        if: ${{ contains(env.SYNC_TYPE, 'huggingface') }}
+        run: |
+          source sync_params.env
+          ./sync_hf.sh "$SOURCE_URL" "$TARGET_PATH"
+        env:
+          SYNC_TYPE: ${{ steps.set_params.outputs.sync_type }}
+          SOURCE_URL: ${{ steps.set_params.outputs.source_url }}
+          TARGET_PATH: ${{ steps.set_params.outputs.target_path }}
+
+      - name: 添加 Issue 评论
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const output = `同步完成。\n源地址：${{ env.SOURCE_URL }}\n目标路径：${{ env.TARGET_PATH }}`
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: output
+            })
