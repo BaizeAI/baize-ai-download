@@ -55,9 +55,15 @@ jobs:
         with:
           script: |
             const output = `同步完成。\n源地址：${{ steps.parse_body.outputs.source_url }}\n下载地址：http://baize-ai.daocloud.io/${{ steps.parse_body.outputs.target_path }}\n`
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: output
             })
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
