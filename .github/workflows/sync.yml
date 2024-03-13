@@ -43,6 +43,7 @@ jobs:
       - name: 执行同步脚本
         if: ${{  steps.parse_body.outputs.sync_type == 'huggingface' }}
         run: |
+          pip install -r requirements.txt
           bash ./sync_hf.sh "${{ steps.parse_body.outputs.source_url }}" "${{ steps.parse_body.outputs.target_path }}"
 
       - name: 添加 Issue 评论
