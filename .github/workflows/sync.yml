@@ -48,6 +48,7 @@ jobs:
         env:
           QUNIU_ACCESS_TOKEN: ${{ secrets.QUNIU_ACCESS_TOKEN }}
           QUNIU_SECRET_KEY: ${{ secrets.QUNIU_SECRET_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: 添加 Issue 评论
         uses: actions/github-script@v5
@@ -57,6 +58,6 @@ jobs:
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
-              repo: context.repo.name,
+              repo: context.repo.repo,
               body: output
             })
