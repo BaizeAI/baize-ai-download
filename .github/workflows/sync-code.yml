@@ -1,0 +1,23 @@
+name: 同步代码到七牛
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  sync_data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: 执行同步脚本
+        if: ${{  steps.parse_body.outputs.sync_type == 'huggingface' }}
+        run: |
+          pip install -r requirements.txt
+          for d in tools; do
+            bash ./sync_hf.sh "$d" "playground/$d"
+          done
+        env:
+          QUNIU_ACCESS_TOKEN: ${{ secrets.QUNIU_ACCESS_TOKEN }}
+          QUNIU_SECRET_KEY: ${{ secrets.QUNIU_SECRET_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
