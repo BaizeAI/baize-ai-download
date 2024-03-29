@@ -2,6 +2,8 @@
 
 # Runs the "345M" parameter model
 
+set -x
+
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 CHECKPOINT_PATH=/checkpoints
@@ -13,21 +15,28 @@ DATA_PATH=/data/gpt2-train-data/meg-gpt2_text_document
 # nano: for single p4 can run.
 TRAIN_SIZE=${TRAIN_SIZE:-nano}
 
-if [[ ${TRAIN_SIZE} == "nano" ]]; then
+if [[ ${TRAIN_SIZE} == "nano" ]]; then # eg: p4, gtx 1080?
     GPT_SIZE_ARGS="
         --num-layers 12 \
         --hidden-size 512 \
         --num-attention-heads 8
     "
-else
+elif [[ ${TRAIN_SIZE} == "mini" ]]; then # eg: t4, v100
     GPT_SIZE_ARGS="
         --num-layers 24 \
         --hidden-size 1024 \
         --num-attention-heads 16
     "
+else
+    GPT_SIZE_ARGS="
+        --num-layers 28 \
+        --hidden-size 2048 \
+        --num-attention-heads 32
+    "
 fi
 
 GPT_ARGS="
+    --tensor-model-parallel-size ${TENSOR_PARALLEL_SIZE:-1} \
     --seq-length 1024 \
     --max-position-embeddings 1024 \
     --micro-batch-size 4 \
@@ -52,7 +61,7 @@ DATA_ARGS="
 
 OUTPUT_ARGS=${OUTPUT_ARGS:-"
     --log-interval 100 \
-    --save-interval 1000 \
+    --save-interval 500000 \
     --eval-interval 1000 \
     --eval-iters 10
 "}
