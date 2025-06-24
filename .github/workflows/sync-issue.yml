@@ -24,8 +24,8 @@ jobs:
 
           # 使用正则表达式匹配所需的参数
           sync_type_match = re.search(r'### 同步类型\s*\n\s*(\w+)', issue_body)
-          source_url_match = re.search(r'### 源地址\s*\n\s*([\w/:-]+)', issue_body)
-          target_path_match = re.search(r'### 目标路径\s*\n\s*([\w/:-]+)', issue_body)
+          source_url_match = re.search(r'### 源地址\s*\n\s*([\w/\.:-]+)', issue_body)
+          target_path_match = re.search(r'### 目标路径\s*\n\s*([\w/\.:-]+)', issue_body)
 
           # 提取参数
           sync_type = sync_type_match.group(1) if sync_type_match else ""
