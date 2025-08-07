@@ -5,9 +5,11 @@ from collections import defaultdict
 from typing import Optional
 
 import requests
-from qiniu import Auth, put_file, put_stream, put_data
+from qiniu import Auth, put_file, put_stream_v2, put_data
 from jinja2 import Environment, BaseLoader
 from huggingface_hub import HfApi, hf_hub_url
+from huggingface_hub.hf_api import RepoFolder
+import fsspec
 
 
 # 直接在脚本中定义模板
@@ -75,8 +77,8 @@ def upload_data(client, bucket_name, data, remote_file):
 
 def upload_stream(client, bucket_name, stream, remote_file, file_name, file_size):
     token = client.upload_token(bucket_name, remote_file, 3600)
-    put_stream(token, remote_file, stream, file_name, file_size)
-    print(f"Uploaded stream to {remote_file}")
+    print(f"Uploading stream to {remote_file}")
+    print(put_stream_v2(token, remote_file, stream, file_name, file_size))
 
 
 def upload_hf_repo(
@@ -108,7 +110,7 @@ def upload_hf_repo(
     headers = {"Authorization": f"Bearer {token}"} if token else {}
 
     for item in tree:
-        if item.type != "file":
+        if isinstance(item, RepoFolder):
             continue
 
         dir_path = os.path.dirname(item.path)
@@ -121,10 +123,11 @@ def upload_hf_repo(
         structure[dir_path]["files"].add(file_name)
 
         url = hf_hub_url(repo_id, item.path, repo_type=repo_type, revision=revision)
-        with requests.get(url, stream=True, headers=headers) as r:
-            r.raise_for_status()
-            remote_path = os.path.join(target, item.path)
-            upload_stream(q, bucket_name, r.raw, remote_path, file_name, item.size)
+        remote_path = os.path.join(target, item.path)
+        # with requests.get(url, stream=True, headers=headers) as r:
+        #     r.raise_for_status()
+        with fsspec.open(url, block_size=1_000_000) as f:
+            upload_stream(q, bucket_name, f, remote_path, file_name, item.size)
 
     for dir_path, content in structure.items():
         index_content = template.render(
