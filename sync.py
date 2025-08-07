@@ -1,7 +1,15 @@
 import argparse
 import os
-from qiniu import Auth, put_file, BucketManager
+import io
+from collections import defaultdict
+from typing import Optional
+
+import requests
+from qiniu import Auth, put_file, put_stream_v2, put_data
 from jinja2 import Environment, BaseLoader
+from huggingface_hub import HfApi, hf_hub_url
+from huggingface_hub.hf_api import RepoFolder
+import fsspec
 
 
 # 直接在脚本中定义模板
@@ -61,15 +69,102 @@ def upload_file(client, bucket_name, local_file, remote_file):
     print(f"Uploaded {local_file} to {remote_file}")
 
 
+def upload_data(client, bucket_name, data, remote_file):
+    token = client.upload_token(bucket_name, remote_file, 3600)
+    put_data(token, remote_file, data)
+    print(f"Uploaded bytes data to {remote_file}")
+
+
+def upload_stream(client, bucket_name, stream, remote_file, file_name, file_size):
+    token = client.upload_token(bucket_name, remote_file, 3600)
+    print(f"Uploading stream to {remote_file}")
+    print(put_stream_v2(token, remote_file, stream, file_name, file_size))
+
+
+def upload_hf_repo(
+    ak,
+    sk,
+    bucket_name,
+    repo_id,
+    target,
+    repo_type="model",
+    revision="main",
+    token: Optional[str] = None,
+):
+    q = Auth(ak, sk)
+    env = Environment(loader=BaseLoader())
+    template = env.from_string(template_string)
+
+    api = HfApi(token=token)
+    tree = api.list_repo_tree(
+        repo_id=repo_id,
+        repo_type=repo_type,
+        revision=revision,
+        recursive=True,
+    )
+
+    structure: dict[str, dict[str, set[str]]] = defaultdict(
+        lambda: {"dirs": set(), "files": set()}
+    )
+
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
+    for item in tree:
+        if isinstance(item, RepoFolder):
+            continue
+
+        dir_path = os.path.dirname(item.path)
+        file_name = os.path.basename(item.path)
+        parts = dir_path.split("/") if dir_path else []
+        for i, part in enumerate(parts):
+            parent_dir = "/".join(parts[:i])
+            child_dir = parts[i]
+            structure[parent_dir]["dirs"].add(child_dir)
+        structure[dir_path]["files"].add(file_name)
+
+        url = hf_hub_url(repo_id, item.path, repo_type=repo_type, revision=revision)
+        remote_path = os.path.join(target, item.path)
+        # with requests.get(url, stream=True, headers=headers) as r:
+        #     r.raise_for_status()
+        with fsspec.open(url, block_size=1_000_000) as f:
+            upload_stream(q, bucket_name, f, remote_path, file_name, item.size)
+
+    for dir_path, content in structure.items():
+        index_content = template.render(
+            directory=os.path.basename(dir_path) or "/",
+            directories=sorted(content["dirs"]),
+            files=sorted(content["files"]),
+        )
+        remote_index = os.path.join(target, dir_path, "index.html")
+        upload_data(q, bucket_name, index_content.encode("utf-8"), remote_index)
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ak', type=str, help='qiniu access key')
     parser.add_argument('--sk', type=str, help='qiniu secret key')
     parser.add_argument('--bucket', type=str, required=False, help='qiniu bucket name')
-    parser.add_argument('src', type=str, help='Local dir to be upload')
+    parser.add_argument('--hf', action='store_true', help='treat src as HuggingFace repo id')
+    parser.add_argument('--repo-type', type=str, default='model', help='HuggingFace repo type')
+    parser.add_argument('--revision', type=str, default='main', help='HuggingFace repo revision')
+    parser.add_argument('--hf-token', type=str, help='HuggingFace access token')
+    parser.add_argument('src', type=str, help='Local dir or HF repo id to be upload')
     parser.add_argument('dst', type=str, help='Qiniu dir prefix')
     args = parser.parse_args()
     ak = args.ak or os.getenv('QUNIU_ACCESS_TOKEN', '')
     sk = args.sk or os.getenv('QUNIU_SECRET_KEY', '')
     bucket = args.bucket or os.getenv('QUNIU_BUCKET_NAME', '') or 'baize-ai'
-    upload_directory(ak, sk, bucket, args.src, args.dst)
+    if args.hf:
+        hf_token = args.hf_token or os.getenv('HF_TOKEN', None)
+        upload_hf_repo(
+            ak,
+            sk,
+            bucket,
+            args.src,
+            args.dst,
+            repo_type=args.repo_type,
+            revision=args.revision,
+            token=hf_token,
+        )
+    else:
+        upload_directory(ak, sk, bucket, args.src, args.dst)
