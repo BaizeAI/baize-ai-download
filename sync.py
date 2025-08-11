@@ -144,6 +144,7 @@ def upload_hf_repo(
 
 if __name__ == '__main__':
     # Configure longer timeout for large file uploads (5 minutes instead of default 30s)
+    # This prevents TimeoutError when uploading large files like model.bin through qiniu's put_stream_v2
     qiniu_config.set_default(connection_timeout=300)
     
     parser = argparse.ArgumentParser()
