@@ -78,7 +78,9 @@ def upload_data(client, bucket_name, data, remote_file):
 def upload_stream(client, bucket_name, stream, remote_file, file_name, file_size):
     token = client.upload_token(bucket_name, remote_file, 3600)
     print(f"Uploading stream to {remote_file}")
-    print(put_stream_v2(token, remote_file, stream, file_name, file_size))
+    d, resp = put_stream_v2(token, remote_file, stream, file_name, file_size)
+    if d is None:
+        raise RuntimeError(resp)
 
 
 def upload_hf_repo(
