@@ -40,10 +40,18 @@ jobs:
           python parse_issue_body.py "${{ github.event.issue.body }}"
         shell: bash
 
-      - name: 执行同步脚本
+      - name: 安装依赖
         if: ${{  steps.parse_body.outputs.sync_type == 'huggingface' }}
         run: |
           pip install -r requirements.txt
+        env:
+          QUNIU_ACCESS_TOKEN: ${{ secrets.QUNIU_ACCESS_TOKEN }}
+          QUNIU_SECRET_KEY: ${{ secrets.QUNIU_SECRET_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: 执行同步脚本
+        if: ${{  steps.parse_body.outputs.sync_type == 'huggingface' }}
+        run: |
           bash ./sync_hf.sh "${{ steps.parse_body.outputs.source_url }}" "${{ steps.parse_body.outputs.target_path }}"
         env:
           QUNIU_ACCESS_TOKEN: ${{ secrets.QUNIU_ACCESS_TOKEN }}
