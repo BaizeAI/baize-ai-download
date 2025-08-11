@@ -6,6 +6,7 @@ from typing import Optional
 
 import requests
 from qiniu import Auth, put_file, put_stream_v2, put_data
+from qiniu import config as qiniu_config
 from jinja2 import Environment, BaseLoader
 from huggingface_hub import HfApi, hf_hub_url
 from huggingface_hub.hf_api import RepoFolder
@@ -142,6 +143,9 @@ def upload_hf_repo(
 
 
 if __name__ == '__main__':
+    # Configure longer timeout for large file uploads (5 minutes instead of default 30s)
+    qiniu_config.set_default(connection_timeout=300)
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('--ak', type=str, help='qiniu access key')
     parser.add_argument('--sk', type=str, help='qiniu secret key')
