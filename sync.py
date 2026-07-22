@@ -1,6 +1,6 @@
 import argparse
 import os
-from qiniu import Auth, put_file, BucketManager
+from qiniu import Auth, put_file
 from jinja2 import Environment, BaseLoader
 
 
@@ -29,7 +29,7 @@ template_string = """
 
 
 def upload_directory(ak, sk, bucket_name, directory_path, target):
-    # 初始化七牛云认证和 BucketManager
+    # 初始化七牛云认证
     q = Auth(ak, sk)
     env = Environment(loader=BaseLoader())
     template = env.from_string(template_string)
@@ -61,15 +61,21 @@ def upload_file(client, bucket_name, local_file, remote_file):
     print(f"Uploaded {local_file} to {remote_file}")
 
 
+def get_credentials(args):
+    """Return Qiniu credentials from args or environment variables."""
+    ak = args.ak or os.getenv("QINIU_ACCESS_KEY", "")
+    sk = args.sk or os.getenv("QINIU_SECRET_KEY", "")
+    bucket = args.bucket or os.getenv("QINIU_BUCKET_NAME", "") or "baize-ai"
+    return ak, sk, bucket
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ak', type=str, help='qiniu access key')
-    parser.add_argument('--sk', type=str, help='qiniu secret key')
-    parser.add_argument('--bucket', type=str, required=False, help='qiniu bucket name')
-    parser.add_argument('src', type=str, help='Local dir to be upload')
-    parser.add_argument('dst', type=str, help='Qiniu dir prefix')
+    parser.add_argument("--ak", type=str, help="qiniu access key")
+    parser.add_argument("--sk", type=str, help="qiniu secret key")
+    parser.add_argument("--bucket", type=str, required=False, help="qiniu bucket name")
+    parser.add_argument("src", type=str, help="Local dir to be upload")
+    parser.add_argument("dst", type=str, help="Qiniu dir prefix")
     args = parser.parse_args()
-    ak = args.ak or os.getenv('QUNIU_ACCESS_TOKEN', '')
-    sk = args.sk or os.getenv('QUNIU_SECRET_KEY', '')
-    bucket = args.bucket or os.getenv('QUNIU_BUCKET_NAME', '') or 'baize-ai'
+    ak, sk, bucket = get_credentials(args)
     upload_directory(ak, sk, bucket, args.src, args.dst)
