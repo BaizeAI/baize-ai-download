@@ -10,7 +10,7 @@ jobs:
     if: contains(github.event.issue.labels.*.name, 'sync')
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       - name: 解析 Issue 正文
         id: parse_body
         run: |
