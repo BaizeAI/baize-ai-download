@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:24.02-py3 as content
+FROM nvcr.io/nvidia/pytorch:26.10-py3 as content
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN wget http://baize-ai.daocloud.io/gpt2-train-data/gpt2-vocab.json && \
 
 RUN git clone https://github.com/NVIDIA/Megatron-LM /Megatron-LM --depth=1
 
-FROM nvcr.io/nvidia/pytorch:24.02-py3
+FROM nvcr.io/nvidia/pytorch:26.10-py3
 
 COPY --from=content /app /data/gpt2-train-data
 COPY --from=content /Megatron-LM .
